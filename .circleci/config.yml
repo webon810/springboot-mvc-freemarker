@@ -1,0 +1,65 @@
+# Java Maven CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-java/ for more details
+#
+version: 2
+jobs:
+  build:
+    #docker:
+      # specify the version you desire here
+     # - image: circleci/openjdk@sha256:1c27b0d618763e59a71dd62c7298677db5f925e7eb7f41cf0f21beaf0ac1770f
+
+    working_directory: ~/repo
+    environment:
+      MAVEN_OPTS: -Xmx3200m
+
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "pom.xml" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-
+
+      - run: mvn dependency:go-offline
+      - save_cache:
+          paths:
+            - ~/.m2
+          key: v1-dependencies-{{ checksum "pom.xml" }}
+
+      - run: mvn clean package
+
+      - store_test_results:
+          path: target/surefire-reports
+
+      - persist_to_workspace:
+          root: target
+          paths:
+            - website.jar
+
+  deploy:
+    machine:
+      enabled: true
+    working_directory: ~/repo
+    steps:
+      - attach_workspace:
+          at: ~/repo/target
+      - run:
+          name: Deploy Over SSH
+          command: |
+            scp -o "StrictHostKeyChecking no" ~/repo/target/website.jar $SSH_USER@$SSH_HOST:/var/website-rootfoldername/
+      - run:
+          name: restart website
+          command: |
+            ssh $SSH_USER@$SSH_HOST "systemctl restart website.service"
+workflows:
+  version: 2
+  build-and-deploy:
+    jobs:
+      - build
+      - deploy:
+          requires:
+            - build
+          filters:
+            branches:
+              only: master
