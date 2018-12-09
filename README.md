@@ -14,5 +14,5 @@ springboot-mvc-freemarker
 mvn spring-boot:run 
 
 ## Local Test (dev)
-SPRING_PROFILES_ACTIVE=dev ./mvnw spring-boot:run
-Visit http://localhost:8585
+- SPRING_PROFILES_ACTIVE=dev ./mvnw spring-boot:run
+- Visit http://localhost:8585
